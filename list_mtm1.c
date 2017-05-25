@@ -123,13 +123,18 @@ int listGetSize(List list){
     return list->list_size;
 }
 
+
+
 List listFilter(List list, FilterListElement filterElement, ListFilterKey key){
     if (list == NULL || filterElement == NULL) return NULL;
     List new_list = listCreate(list->copyFunc,list->freeFunc);
     if (new_list == NULL) return NULL;
     Node* tmp = list->header->next;
     for (int i=0 ; i < list->list_size; i++){
-        if (filterElement(tmp->element,key) == 0) continue;
+        if (filterElement(tmp->element,key) == 0){
+            tmp = tmp->next;
+            continue;
+        }
         ListResult check = listInsertLast(new_list,tmp->element);
         if (check != LIST_SUCCESS) {
             listDestroy(new_list);

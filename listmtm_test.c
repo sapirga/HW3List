@@ -29,11 +29,6 @@ bool isLongerThan(ListElement string, ListFilterKey key) {
     return strlen(string) > *(int*)key;
 }
 
-
-
-
-
-
 int main(int argc, char **argv){
     //Check listCreate Func
     List list1 = listCreate(NULL, freeString);
