@@ -64,10 +64,11 @@ static void freeNode(Node* node, FreeListElement freeElement){
 
 static ListResult insertByIndex(List list, ListElement element, int index){
     assert(list != NULL);
+    assert((index >= 0) && (index <= listGetSize(list)));
     Node* tmp = list->header;
     Node* new_node = createNode(list->copyFunc,element);
     if (new_node == NULL) return LIST_OUT_OF_MEMORY;
-    for(int i=0; i < listGetSize(list); i++){
+    for(int i=0; i < listGetSize(list)+1; i++){
         if(i == index){
             new_node->next =tmp->next;
             tmp->next = new_node;
@@ -75,8 +76,9 @@ static ListResult insertByIndex(List list, ListElement element, int index){
         }
         tmp = tmp->next;
     }
+    (list->list_size)++;
     return LIST_SUCCESS;
-};
+}
 
 void listDestroy(List list){
     if (list==NULL) return;
@@ -126,14 +128,25 @@ List listCopy(List list){
     List new_list = listCreate(list->copyFunc,list->freeFunc);
     if (new_list == NULL) return NULL;
     Node* tmp = list->header->next;
+    int iter_index = -1;
     for (int i=0 ; i < list->list_size; i++){
-        char* word = tmp->element;
         ListResult check = listInsertLast(new_list,tmp->element);
         if (check != LIST_SUCCESS) {
             listDestroy(new_list);
             return NULL;
         }
+        if(tmp == list->iterator){ //search iterator index in the list
+            iter_index = i;
+        }
         tmp = tmp->next;
+    }
+    tmp = new_list->header->next;
+    //initiates the new_list iterator same as original list
+    if(iter_index != -1){
+        for(int i=0; i < iter_index; i++) {
+            tmp = tmp->next;
+        }
+        new_list->iterator = tmp;
     }
     return  new_list;
 }
@@ -161,6 +174,7 @@ List listFilter(List list, FilterListElement filterElement, ListFilterKey key){
         }
         tmp = tmp->next;
     }
+    new_list->iterator = new_list->header->next;
     return  new_list;
 }
 
@@ -188,12 +202,16 @@ ListResult listInsertBeforeCurrent(List list, ListElement element){
     if(listGetCurrent(list) == NULL) return LIST_INVALID_CURRENT;
     Node* tmp = list->header;
     int index = 0;
+    ListResult reuslt;
     for(int i=0; i < listGetSize(list); i++){
         if(tmp->next == list->iterator){
             index = i;
-            return insertByIndex(list,element,&index);
+            reuslt = insertByIndex(list,element,index);
+            break;
         }
+        tmp = tmp->next;
     }
+    return reuslt;
 }
 
 ListResult listInsertAfterCurrent(List list, ListElement element){
@@ -201,26 +219,32 @@ ListResult listInsertAfterCurrent(List list, ListElement element){
     if(listGetCurrent(list) == NULL) return LIST_INVALID_CURRENT;
     Node* tmp = list->header;
     int index = 0;
+    ListResult reuslt;
     for(int i=0; i < listGetSize(list); i++){
         if(tmp->next == list->iterator){
             index = i+1;
-            return insertByIndex(list,element,&index);
+            reuslt = insertByIndex(list,element,index);
+            break;
         }
+        tmp = tmp->next;
     }
+    return reuslt;
 }
 
 ListResult listRemoveCurrent(List list){
     if(list == NULL) return LIST_NULL_ARGUMENT;
     if(listGetCurrent(list) == NULL) return LIST_INVALID_CURRENT;
     Node* tmp = list->header;
-    int index = 0;
     for(int i=0; i < listGetSize(list); i++){
         if(tmp->next == list->iterator){
             tmp->next = list->iterator->next;
             freeNode(list->iterator,list->freeFunc);
-            return LIST_SUCCESS;
+            (list->list_size)--;
+            break;
         }
     }
+    list->iterator = NULL;
+    return LIST_SUCCESS;
 }
 
 ListResult listClear(List list){
@@ -235,5 +259,6 @@ ListResult listClear(List list){
 
 ListResult listSort(List list, CompareListElements compareElement){
     if(list == NULL || compareElement == NULL) return LIST_NULL_ARGUMENT;
-
+    ListResult reuslt = 0;
+    return reuslt;
 }
