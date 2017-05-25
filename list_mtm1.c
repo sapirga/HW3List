@@ -21,6 +21,8 @@ struct list_t{
 };
 
 static Node* createNode(CopyListElement copyElement, ListElement element);
+static void freeNode(Node* node, FreeListElement freeElement);
+static ListResult insertByIndex(List list, ListElement element, int index);
 
 List listCreate(CopyListElement copyElement, FreeListElement freeElement){
     if (copyElement == NULL || freeElement == NULL) return NULL;
@@ -59,6 +61,22 @@ static void freeNode(Node* node, FreeListElement freeElement){
     free(node);
     return;
 }
+
+static ListResult insertByIndex(List list, ListElement element, int index){
+    assert(list != NULL);
+    Node* tmp = list->header;
+    Node* new_node = createNode(list->copyFunc,element);
+    if (new_node == NULL) return LIST_OUT_OF_MEMORY;
+    for(int i=0; i < listGetSize(list); i++){
+        if(i == index){
+            new_node->next =tmp->next;
+            tmp->next = new_node;
+            break;
+        }
+        tmp = tmp->next;
+    }
+    return LIST_SUCCESS;
+};
 
 void listDestroy(List list){
     if (list==NULL) return;
@@ -144,4 +162,78 @@ List listFilter(List list, FilterListElement filterElement, ListFilterKey key){
         tmp = tmp->next;
     }
     return  new_list;
+}
+
+ListElement listGetFirst(List list){
+    if (!list) return NULL;
+    if(listGetSize(list) == 0) return NULL;
+    list->iterator = list->header->next;
+    return list->iterator->element;
+}
+
+ListElement listGetNext(List list){
+    if(list == NULL || list->iterator == NULL ||
+            list->iterator->next == NULL) return NULL;
+    list->iterator = list->iterator->next;
+    return list->iterator->element;
+}
+
+ListElement listGetCurrent(List list){
+    if(list == NULL || list->iterator == NULL) return NULL;
+    return list->iterator->element;
+}
+
+ListResult listInsertBeforeCurrent(List list, ListElement element){
+    if(list == NULL) return LIST_NULL_ARGUMENT;
+    if(listGetCurrent(list) == NULL) return LIST_INVALID_CURRENT;
+    Node* tmp = list->header;
+    int index = 0;
+    for(int i=0; i < listGetSize(list); i++){
+        if(tmp->next == list->iterator){
+            index = i;
+            return insertByIndex(list,element,&index);
+        }
+    }
+}
+
+ListResult listInsertAfterCurrent(List list, ListElement element){
+    if(list == NULL) return LIST_NULL_ARGUMENT;
+    if(listGetCurrent(list) == NULL) return LIST_INVALID_CURRENT;
+    Node* tmp = list->header;
+    int index = 0;
+    for(int i=0; i < listGetSize(list); i++){
+        if(tmp->next == list->iterator){
+            index = i+1;
+            return insertByIndex(list,element,&index);
+        }
+    }
+}
+
+ListResult listRemoveCurrent(List list){
+    if(list == NULL) return LIST_NULL_ARGUMENT;
+    if(listGetCurrent(list) == NULL) return LIST_INVALID_CURRENT;
+    Node* tmp = list->header;
+    int index = 0;
+    for(int i=0; i < listGetSize(list); i++){
+        if(tmp->next == list->iterator){
+            tmp->next = list->iterator->next;
+            freeNode(list->iterator,list->freeFunc);
+            return LIST_SUCCESS;
+        }
+    }
+}
+
+ListResult listClear(List list){
+    if(list == NULL) return LIST_NULL_ARGUMENT;
+    Node* tmp = list->header->next;
+    for(int i=0; i < listGetSize(list); i++){
+        list->freeFunc(tmp->element);
+        tmp = tmp->next;
+    }
+    return LIST_SUCCESS;
+}
+
+ListResult listSort(List list, CompareListElements compareElement){
+    if(list == NULL || compareElement == NULL) return LIST_NULL_ARGUMENT;
+
 }
