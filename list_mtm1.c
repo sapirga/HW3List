@@ -1,3 +1,5 @@
+//16:48
+
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
@@ -122,7 +124,6 @@ int listGetSize(List list){
  if (list == NULL) return  -1;
     return list->list_size;
 }
-
 
 
 List listFilter(List list, FilterListElement filterElement, ListFilterKey key){
