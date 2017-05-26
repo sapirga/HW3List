@@ -1,5 +1,3 @@
-//1
-
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
@@ -23,6 +21,10 @@ struct list_t{
 static Node* createNode(CopyListElement copyElement, ListElement element);
 static void freeNode(Node* node, FreeListElement freeElement);
 static ListResult insertByIndex(List list, ListElement element, int index);
+static int indexOfIterator(List list);
+static void moveIteratorByIndex(List list, int index);
+static ListResult insertNextSortElement(List clone_list, CompareListElements
+                        compareElement, ListElement element1);
 
 List listCreate(CopyListElement copyElement, FreeListElement freeElement){
     if (copyElement == NULL || freeElement == NULL) return NULL;
@@ -199,7 +201,7 @@ ListElement listGetCurrent(List list){
 
 ListResult listInsertBeforeCurrent(List list, ListElement element){
     if(list == NULL) return LIST_NULL_ARGUMENT;
-    if(listGetCurrent(list) == NULL) return LIST_INVALID_CURRENT;
+    if(list->iterator == NULL) return LIST_INVALID_CURRENT;
     Node* tmp = list->header;
     int index = 0;
     ListResult reuslt;
@@ -216,7 +218,7 @@ ListResult listInsertBeforeCurrent(List list, ListElement element){
 
 ListResult listInsertAfterCurrent(List list, ListElement element){
     if(list == NULL) return LIST_NULL_ARGUMENT;
-    if(listGetCurrent(list) == NULL) return LIST_INVALID_CURRENT;
+    if(list->iterator == NULL) return LIST_INVALID_CURRENT;
     Node* tmp = list->header;
     int index = 0;
     ListResult reuslt;
@@ -233,7 +235,7 @@ ListResult listInsertAfterCurrent(List list, ListElement element){
 
 ListResult listRemoveCurrent(List list){
     if(list == NULL) return LIST_NULL_ARGUMENT;
-    if(listGetCurrent(list) == NULL) return LIST_INVALID_CURRENT;
+    if(list->iterator == NULL) return LIST_INVALID_CURRENT;
     Node* tmp = list->header;
     for(int i=0; i < listGetSize(list); i++){
         if(tmp->next == list->iterator){
@@ -257,8 +259,71 @@ ListResult listClear(List list){
     return LIST_SUCCESS;
 }
 
+static int indexOfIterator(List list){
+    assert(!list);
+    int index = -1;
+    if (list->iterator == NULL) return index;
+    Node* tmp = list->header;
+    for(int i=0; i < listGetSize(list); i++){
+        if(tmp == list->iterator){
+            index = i;
+            break;
+        }
+        tmp = tmp->next;
+    }
+    return index;
+}
+
+static void moveIteratorByIndex(List list, int index){
+    assert((list != NULL));
+    assert((list->list_size > index));
+    if(index == -1){
+        list->iterator = NULL;
+    }
+    listGetFirst(list);
+    for(int i=0; i < index-1; i++) {
+            listGetNext(list);
+    }
+}
+static ListResult insertNextSortElement(List clone_list, CompareListElements
+            compareElement, ListElement element1) {
+    assert(clone_list->iterator != NULL);
+    ListElement element2 = listGetFirst(clone_list);
+    while ((element2 != NULL) && (compareElement(element1, element2) <= 0)) {
+        element2 = listGetNext(clone_list);
+    }
+    ListResult result;
+    Node *new_node = createNode(clone_list->copyFunc, element1);
+    if (new_node == NULL) return LIST_OUT_OF_MEMORY;
+    if(clone_list->iterator == NULL){
+        result = listInsertLast(clone_list,element1);
+    } else {
+        result = listInsertAfterCurrent(clone_list, element1);
+    }
+    return result;
+}
+
 ListResult listSort(List list, CompareListElements compareElement){
     if(list == NULL || compareElement == NULL) return LIST_NULL_ARGUMENT;
-    ListResult reuslt = 0;
-    return reuslt;
+    ListResult result;
+    int original_index = indexOfIterator(list);//TODO what if -1?
+    List clone = listCreate(list->copyFunc,list->freeFunc);
+    if (clone == NULL) return LIST_OUT_OF_MEMORY;
+    listInsertFirst(clone, listGetFirst(list));
+    int original_size = listGetSize(list);
+    for (int i = 0; i < original_size; i++) {
+        ListElement element = listGetFirst(list);
+        result = insertNextSortElement(clone, compareElement,element);
+        if (result !=LIST_SUCCESS) {
+            listDestroy(clone);
+            return result;
+        }
+    }
+    //swap the original list header with the clone list header
+    Node* tmp =  list->header;
+    list->header = clone->header;
+    clone->header = tmp;
+    listDestroy(clone);
+    moveIteratorByIndex(list,original_index);
+    return result;
 }
