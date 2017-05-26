@@ -244,6 +244,7 @@ ListResult listRemoveCurrent(List list){
             (list->list_size)--;
             break;
         }
+        tmp = tmp->next;
     }
     list->iterator = NULL;
     return LIST_SUCCESS;
@@ -264,7 +265,7 @@ static int indexOfIterator(List list){
     int index = -1;
     if (list->iterator == NULL) return index;
     Node* tmp = list->header;
-    for(int i=0; i < listGetSize(list); i++){
+    for(int i=0; i < listGetSize(list)+1; i++){
         if(tmp == list->iterator){
             index = i;
             break;
@@ -286,19 +287,18 @@ static void moveIteratorByIndex(List list, int index){
     }
 }
 static ListResult insertNextSortElement(List clone_list, CompareListElements
-            compareElement, ListElement element1) {
-    assert(clone_list->iterator != NULL);
-    ListElement element2 = listGetFirst(clone_list);
-    while ((element2 != NULL) && (compareElement(element1, element2) <= 0)) {
-        element2 = listGetNext(clone_list);
+            compareElement, ListElement new_element) {
+    assert((clone_list != NULL) && (new_element != NULL));
+    ListElement old_element = listGetFirst(clone_list);
+    while ((old_element != NULL) &&
+            (compareElement(new_element, old_element) <= 0)) {
+        old_element = listGetNext(clone_list);
     }
     ListResult result;
-    Node *new_node = createNode(clone_list->copyFunc, element1);
-    if (new_node == NULL) return LIST_OUT_OF_MEMORY;
-    if(clone_list->iterator == NULL){
-        result = listInsertLast(clone_list,element1);
+    if(old_element == NULL){
+        result = listInsertLast(clone_list,new_element);
     } else {
-        result = listInsertAfterCurrent(clone_list, element1);
+        result = listInsertBeforeCurrent(clone_list, new_element);
     }
     return result;
 }
@@ -306,14 +306,17 @@ static ListResult insertNextSortElement(List clone_list, CompareListElements
 ListResult listSort(List list, CompareListElements compareElement){
     if(list == NULL || compareElement == NULL) return LIST_NULL_ARGUMENT;
     ListResult result;
-    int original_index = indexOfIterator(list);//TODO what if -1?
+    int original_index = indexOfIterator(list);
     List clone = listCreate(list->copyFunc,list->freeFunc);
     if (clone == NULL) return LIST_OUT_OF_MEMORY;
-    listInsertFirst(clone, listGetFirst(list));
-    int original_size = listGetSize(list);
-    for (int i = 0; i < original_size; i++) {
-        ListElement element = listGetFirst(list);
-        result = insertNextSortElement(clone, compareElement,element);
+    result = listInsertFirst(clone, listGetFirst(list));
+    if (result !=LIST_SUCCESS) {
+        listDestroy(clone);
+        return result;
+    }
+    for (int i = 1; i < listGetSize(list); i++) {
+        ListElement new_element = listGetNext(list);
+        result = insertNextSortElement(clone,compareElement,new_element);
         if (result !=LIST_SUCCESS) {
             listDestroy(clone);
             return result;
