@@ -12,19 +12,86 @@ typedef struct Snode{
 
 struct list_t{
     int list_size;
-    Node* header;
-    Node* iterator;
+    Node* header; //a dummy first node
+    Node* iterator; //the iterator of the list
     CopyListElement copyFunc;
     FreeListElement freeFunc;
 };
 
+/**
+* Adds a new Node to the list.
+*
+* @param copyElement Function pointer to be used for copying elements into
+* the list or when copying the list.
+* @param element The element to insert. A copy of the element will be
+* inserted as supplied by the copying function which is stored in the list
+* @return
+* NULL if an allocation failed (Meaning the function for copying
+* an element failed)
+* Node_ptr if the node has been created successfully
+*/
 static Node* createNode(CopyListElement copyElement, ListElement element);
+
+/**
+* Frees a Node.
+*
+* @param node pointer to the node that will be freed.
+* @param freeElement Function pointer to be used for removing elements from
+* the list.
+* @return
+* NULL if an allocation failed (Meaning the function for copying
+* an element failed)
+* Node_ptr if the node has been created successfully
+*/
 static void freeNode(Node* node, FreeListElement freeElement);
+
+/**
+* Inserts a new Node to the list in a specific place.
+*
+* @param list The list that will updated.
+* @param element The element to insert. A copy of the element will be
+* inserted as supplied by the copying function which is stored in the list
+* @param index The specific place in the list that the node will be add
+* @return
+* LIST_OUT_OF_MEMORY if an allocation failed (Meaning the function for copying
+* an element failed)
+* LIST_SUCCESS if the node has been added successfully
+*/
 static ListResult insertByIndex(List list, ListElement element, int index);
+
+/**
+* Finds the place of the iterator in a list.
+*
+* @param list The list that will updated.
+* @return
+* -1 if the iterator is in invalid state
+* index of the place that the iterator points to a node in the list
+*/
 static int indexOfIterator(List list);
+
+/**
+* Moves the iterator to a specific place in the list.
+*
+* @param list The relevant list.
+* @param index The specific place in the list that the iterator will point to.
+*/
 static void moveIteratorByIndex(List list, int index);
+
+/**
+* Inserts a new Node to a sorted list.
+*
+* @param clone_list The sorted list that will updated.
+* @param compareElement A comparison function as defined in the type
+* CompareListElements. This function should return an integer indicating the
+* relation between two elements in the list
+* @param new_element The element that will be added to the sorted list
+* @return
+* LIST_OUT_OF_MEMORY if an allocation failed (Meaning the function for copying
+* an element failed)
+* LIST_SUCCESS if the node has been added successfully
+*/
 static ListResult insertNextSortElement(List clone_list, CompareListElements
-                        compareElement, ListElement element1);
+            compareElement, ListElement new_element);
 
 List listCreate(CopyListElement copyElement, FreeListElement freeElement){
     if (copyElement == NULL || freeElement == NULL) return NULL;
@@ -188,9 +255,11 @@ ListElement listGetFirst(List list){
 }
 
 ListElement listGetNext(List list){
-    if(list == NULL || list->iterator == NULL ||
-            list->iterator->next == NULL) return NULL;
+    if(list == NULL || list->iterator == NULL){
+        return NULL;
+    }
     list->iterator = list->iterator->next;
+    if (list->iterator == NULL) return NULL;
     return list->iterator->element;
 }
 

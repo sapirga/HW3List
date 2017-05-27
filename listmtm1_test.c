@@ -7,7 +7,6 @@
 #include <stdlib.h>
 
 
-
 static ListElement copyString(ListElement str){
 	assert(str);
 	char* copy = malloc(strlen(str)+1);
